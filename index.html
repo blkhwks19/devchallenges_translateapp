@@ -1,0 +1,306 @@
+<!doctype html>
+<html>
+<head>
+    <title>Document</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap');
+
+      body {
+        margin:0;
+        background: url('./images/hero_img.jpg') no-repeat top center var(--black);
+        background-size: contain;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        --black:#040711;
+        --slate:#212936cc;
+        --darkslate:#121826cc;
+        --gray:#4D5562;
+        --darkgray:#394150;
+        --white:#F9FAFB;
+        --offwhite:#CDD5E0;
+        --blue:#3662E3;
+        --lightblue:#7CA9F3;
+        font-family: 'DM Sans', sans-serif;
+      }
+      html, body {
+        height:100%;
+      }
+
+      .logo {
+        position: absolute;
+        top:15%;
+        left:45%;
+        width:10%;
+      }
+
+      .cards {
+        display: flex;
+        gap:20px;
+      }
+      .card {
+        border-radius:20px;
+        border:1px solid var(--gray);
+        padding:20px 20px;
+        width:500px;
+      }
+
+      .card--input {
+        background:var(--slate);
+      }
+      .card--output {
+        background:var(--darkslate);
+      }
+
+      .label {
+        color:var(--gray);
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .languages {
+        display:flex;
+        align-items: center;
+        gap:15px;
+        border-bottom:1px solid var(--gray);
+        padding-bottom:15px;
+        padding-left:10px;
+      }
+      .languages button {
+        color:var(--gray);
+        font-size: 14px;
+        font-weight: 700;
+        background:none;
+        border:none;
+        padding:8px 10px;
+        border-radius:10px;
+        cursor: pointer;
+      }
+      .languages button.active {
+        background:var(--gray);
+        color:var(--offwhite);
+      }
+      .card--input .text:focus {
+        border:none;
+        outline:none;
+      }
+      .text {
+        color:var(--offwhite);
+        font-size: 16px;
+        font-weight: 700;
+        padding:20px 0;
+        height:100px;
+      }
+      .charCount {
+        text-align: right;
+        color:var(--gray);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top:10px;
+      }
+      .controls .buttons button {
+        background:none;
+        border:2px solid var(--gray);
+        padding:5px 5px;
+        border-radius:12px;
+        cursor: pointer;
+        margin-right: 3px;
+      }
+      .controls .buttons button img {
+        position: relative;
+        top:1px;
+      }
+      .translateBtn {
+        background: var(--blue);
+        border:1px solid var(--lightblue);
+        border-radius:10px;
+        color:var(--offwhite);
+        font-size: 16px;
+        font-weight: 700;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap:10px;
+        padding:10px 20px;
+        cursor: pointer;
+      }
+
+      .card--output .languages {
+        justify-content: space-between;
+      }
+      .languages .swapBtn {
+        background:none;
+        border:2px solid var(--gray);
+        padding:3px 5px;
+        border-radius:12px;
+        cursor: pointer;
+        margin-right: 2px;
+      }
+      .card--output .text {
+        height: 120px;
+      }
+    </style>
+    <script>
+      window.onload = function() {
+
+        translate();
+
+        document.querySelector('.translateBtn').addEventListener('click', function() {
+          translate();
+        });
+
+        var srcLangBtns = document.querySelectorAll('.card--input .languages button');
+        srcLangBtns.forEach(btn => {
+          btn.addEventListener('click', function() {
+            clearAll('input');
+            btn.classList.add('active');
+          });
+        });
+        var destLangBtns = document.querySelectorAll('.card--output .languages button');
+        destLangBtns.forEach(btn => {
+          btn.addEventListener('click', function() {
+            clearAll('output');
+            btn.classList.add('active');
+          });
+        });
+
+        document.querySelector('.card--input .soundBtn').addEventListener('click', function() {
+          var lang = getSelectedLang('input');
+          var text = document.querySelector('.card--input .text').innerText;
+          speak(text, lang);
+        });
+        document.querySelector('.card--output .soundBtn').addEventListener('click', function() {
+          var lang = getSelectedLang('output');
+          var text = document.querySelector('.card--output .text').innerText;
+          speak(text, lang);
+        });
+
+        document.querySelector('.card--input .copyBtn').addEventListener('click', function() {
+          var text = document.querySelector('.card--input .text').innerText;
+          navigator.clipboard.writeText(text);
+        });
+        document.querySelector('.card--output .copyBtn').addEventListener('click', function() {
+          var text = document.querySelector('.card--output .text').innerText;
+          navigator.clipboard.writeText(text);
+        });
+
+        document.querySelector('.card--input .text').addEventListener('input', function(e){
+          e.target.innerText = e.target.innerText.substring(0, 500);
+          var count = e.target.innerText.length;
+          document.querySelector('.charCount').innerText = `${count}/500`;
+        });
+
+      }
+
+      function speak(text, lang) {
+        var msg = new SpeechSynthesisUtterance();
+        msg.lang = lang;
+        msg.text = text;
+        window.speechSynthesis.speak(msg);
+      }
+
+      function clearAll(io) {
+        var buttons = document.querySelectorAll(`.card--${io} .languages button`);
+        buttons.forEach(btn => {
+          btn.classList.remove('active');
+        });
+      }
+
+      function translate() {
+        var src = getSelectedLang('input');
+        var text = document.querySelector('.card--input .text').innerText;
+        var dest = getSelectedLang('output');
+        fetch(`https://api.mymemory.translated.net/get?q=${text}&langpair=${src}|${dest}`)
+          .then(response => response.json())
+          .then(data => {
+            // console.log(data)
+            document.querySelector('.card--output .text').innerHTML = data.responseData.translatedText;
+          })
+          .catch(error => {
+            console.log(error)
+          })
+        ;
+      }
+
+      function getSelectedLang(io) {
+        var lang;
+        var buttons = document.querySelectorAll(`.card--${io} .languages button`);
+        for (var i = 0; i < buttons.length; i++) {
+          if (buttons[i].classList.contains('active')) {
+            lang = buttons[i].innerText;
+          }
+        }
+        return getLangCode(lang);
+      }
+
+      function getLangCode(lang) {
+        var code;
+        switch(lang) {
+          case 'English':
+            code = 'en';
+            break;
+          case 'French':
+            code = 'fr';
+            break;
+          case 'Spanish':
+            code = 'es';
+            break;
+          default:
+            break;
+        }
+        return code;
+      }
+    </script>
+</head>
+<body>
+
+  <img class="logo" src="./images/logo.svg">
+
+  <div class="cards">
+    <div class="card card--input">
+      <div class="languages">
+        <span class="label">Detect Language</span>
+        <button class="active">English</button>
+        <button>French</button>
+        <button>Spanish</button>
+      </div>
+      <div class="content">
+        <div class="text" contenteditable>Hello, how are you?</div>
+        <div class="charCount">19/500</div>
+      </div>
+      <div class="controls">
+        <div class="buttons">
+          <button class="soundBtn"><img src="./images/sound_max_fill.svg"></button>
+          <button class="copyBtn"><img src="./images/Copy.svg"></button>
+        </div>
+        <button class="translateBtn"><img src="./images/Sort_alfa.svg">Translate</button>
+      </div>
+    </div>
+    <div class="card card--output">
+      <div class="languages">
+        <span>
+          <button>English</button>
+          <button class="active">French</button>
+          <button>Spanish</button>
+        </span>
+        <div class="swapBtn"><img src="./images/Horizontal_top_left_main.svg"></div>
+      </div>
+      <div class="content">
+        <div class="text"></div>
+      </div>
+      <div class="controls">
+        <div class="buttons">
+          <button class="soundBtn"><img src="./images/sound_max_fill.svg"></button>
+          <button class="copyBtn"><img src="./images/Copy.svg"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
